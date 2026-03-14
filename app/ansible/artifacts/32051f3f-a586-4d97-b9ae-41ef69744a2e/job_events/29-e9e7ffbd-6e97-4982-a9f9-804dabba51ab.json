@@ -1,0 +1,1 @@
+{"event": "verbose", "uuid": "e9e7ffbd-6e97-4982-a9f9-804dabba51ab", "counter": 29, "stdout": "    makedirs_safe(value, 0o700)", "start_line": 28, "end_line": 29, "runner_ident": "32051f3f-a586-4d97-b9ae-41ef69744a2e", "created": "2026-03-13T23:10:31.775946+00:00"}

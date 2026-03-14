@@ -1,0 +1,19 @@
+# REGLA: Los comentarios en este archivo proporcionan instrucciones de configuración.
+# INSTRUCCIÓN: Si necesitas más ayuda, consulta la referencia de Docker Compose en
+# https://docs.docker.com/go/compose-spec-reference/
+
+services:
+  server:
+    build:
+      context: .
+    
+    # INSTRUCCIÓN: Estos dos valores son clave para que los menús interactivos 
+    # de tu CLI (como InquirerPy) funcionen dentro del contenedor (mantienen la consola abierta).
+    stdin_open: true 
+    tty: true
+
+    # REGLA: Los volúmenes montan tu código desde la computadora al contenedor.
+    # INSTRUCCIÓN: Al usar ".:/app", cualquier cambio ("hot-reload") que guardes en tu Visual Studio
+    # se reflejará instantáneamente dentro del contenedor sin necesidad de hacer "build" otra vez.
+    volumes:
+      - .:/app

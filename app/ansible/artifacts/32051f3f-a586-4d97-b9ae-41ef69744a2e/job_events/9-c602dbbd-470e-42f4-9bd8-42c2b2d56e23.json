@@ -1,0 +1,1 @@
+{"event": "verbose", "uuid": "c602dbbd-470e-42f4-9bd8-42c2b2d56e23", "counter": 9, "stdout": "PermissionError: [Errno 13] Permission denied: b'/nonexistent'", "start_line": 8, "end_line": 9, "runner_ident": "32051f3f-a586-4d97-b9ae-41ef69744a2e", "created": "2026-03-13T23:10:31.177287+00:00"}

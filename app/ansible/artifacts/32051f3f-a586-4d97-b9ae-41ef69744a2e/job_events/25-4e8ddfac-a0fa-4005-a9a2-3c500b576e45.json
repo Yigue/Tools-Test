@@ -1,0 +1,1 @@
+{"event": "verbose", "uuid": "4e8ddfac-a0fa-4005-a9a2-3c500b576e45", "counter": 25, "stdout": "  File \"/usr/local/lib/python3.12/site-packages/ansible/config/manager.py\", line 108, in ensure_type", "start_line": 24, "end_line": 25, "runner_ident": "32051f3f-a586-4d97-b9ae-41ef69744a2e", "created": "2026-03-13T23:10:31.640208+00:00"}

@@ -1,0 +1,15 @@
+---
+- name: Obtener especificaciones del equipo
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Capturar datos relevantes del sistema
+      set_fact:
+        specs_resumen: >-
+          OS: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }} |
+          CPU: {{ ansible_facts['processor_vcpus'] }} vCores |
+          RAM: {{ (ansible_facts['memtotal_mb'] / 1024) | round(2) }} GB
+
+    - name: Mostrar las especificaciones
+      debug:
+        msg: "{{ specs_resumen }}"

@@ -1,0 +1,1 @@
+{"event": "verbose", "uuid": "8aadb772-0f4d-4312-ba0c-7e9cf063d475", "counter": 31, "stdout": "    raise AnsibleError(f\"Unable to create local directories {rpath!r}.\") from ex", "start_line": 30, "end_line": 31, "runner_ident": "32051f3f-a586-4d97-b9ae-41ef69744a2e", "created": "2026-03-13T23:10:31.844542+00:00"}

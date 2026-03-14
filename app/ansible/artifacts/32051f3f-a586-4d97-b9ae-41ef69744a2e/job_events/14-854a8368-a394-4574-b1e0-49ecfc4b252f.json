@@ -1,0 +1,1 @@
+{"event": "verbose", "uuid": "854a8368-a394-4574-b1e0-49ecfc4b252f", "counter": 14, "stdout": "  File \"/usr/local/lib/python3.12/site-packages/ansible/cli/__init__.py\", line 93, in <module>", "start_line": 13, "end_line": 14, "runner_ident": "32051f3f-a586-4d97-b9ae-41ef69744a2e", "created": "2026-03-13T23:10:31.283317+00:00"}

@@ -1,0 +1,6 @@
+# Inventario base de SCIPi para pruebas
+# Este inventario se conecta a sí mismo (el contenedor Docker local)
+all:
+  hosts:
+    localhost:
+      ansible_connection: local

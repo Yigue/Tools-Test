@@ -1,0 +1,1 @@
+{"event": "verbose", "uuid": "ba7d148d-c6e2-4bfc-abd3-d6b359399d92", "counter": 30, "stdout": "  File \"/usr/local/lib/python3.12/site-packages/ansible/utils/path.py\", line 90, in makedirs_safe", "start_line": 29, "end_line": 30, "runner_ident": "32051f3f-a586-4d97-b9ae-41ef69744a2e", "created": "2026-03-13T23:10:31.808135+00:00"}

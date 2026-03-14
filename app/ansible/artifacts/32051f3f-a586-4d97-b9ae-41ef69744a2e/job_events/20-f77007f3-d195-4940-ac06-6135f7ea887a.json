@@ -1,0 +1,1 @@
+{"event": "verbose", "uuid": "f77007f3-d195-4940-ac06-6135f7ea887a", "counter": 20, "stdout": "    value, _drop = self.get_config_value_and_origin(config, cfile=cfile, plugin_type=plugin_type, plugin_name=plugin_name,", "start_line": 19, "end_line": 20, "runner_ident": "32051f3f-a586-4d97-b9ae-41ef69744a2e", "created": "2026-03-13T23:10:31.488098+00:00"}
