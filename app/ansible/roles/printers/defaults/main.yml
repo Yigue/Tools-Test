@@ -1,0 +1,3 @@
+---
+zebra_port: 9100
+spooler_restart_delay: 5

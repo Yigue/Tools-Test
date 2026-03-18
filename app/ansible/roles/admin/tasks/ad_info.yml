@@ -1,0 +1,32 @@
+---
+- name: Consultar informacion en AD
+  ansible.windows.win_shell: |
+    $hostname = $env:COMPUTERNAME
+    $dc = "{{ domain_controller }}"
+
+    $computer = Get-ADComputer $hostname -Server $dc -Properties `
+      OperatingSystem, Created, LastLogonDate, IPv4Address, `
+      DistinguishedName, Description, MemberOf -ErrorAction Stop
+
+    $groups = $computer.MemberOf | ForEach-Object {
+      ($_ -split ',')[0] -replace 'CN=', ''
+    }
+
+    $info = @{
+      hostname       = $hostname
+      os             = $computer.OperatingSystem
+      created        = $computer.Created.ToString('yyyy-MM-dd')
+      last_logon     = if ($computer.LastLogonDate) { $computer.LastLogonDate.ToString('yyyy-MM-dd HH:mm') } else { "Nunca" }
+      ipv4           = $computer.IPv4Address
+      dn             = $computer.DistinguishedName
+      description    = $computer.Description
+      groups         = @($groups)
+    }
+
+    $info | ConvertTo-Json -Depth 3
+  register: ad_result
+  changed_when: false
+
+- name: Mostrar info de AD
+  ansible.builtin.debug:
+    msg: "{{ ad_result.stdout | from_json }}"

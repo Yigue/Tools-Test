@@ -1,0 +1,37 @@
+---
+- name: Verificar estado de activacion
+  ansible.windows.win_shell: |
+    $lic = Get-CimInstance SoftwareLicensingProduct |
+           Where-Object { $_.PartialProductKey -ne $null } |
+           Select-Object -First 1
+    if ($lic.LicenseStatus -eq 1) {
+      Write-Output "ACTIVATED"
+    } else {
+      Write-Output "NOT_ACTIVATED"
+    }
+  register: activation_status
+  changed_when: false
+
+- name: Configurar servidor KMS
+  ansible.windows.win_shell: |
+    slmgr.vbs /skms {{ kms_server }}:{{ kms_port }}
+  when: activation_status.stdout_lines[0] == "NOT_ACTIVATED"
+
+- name: Activar Windows
+  ansible.windows.win_shell: |
+    slmgr.vbs /ato
+    Start-Sleep -Seconds 5
+    $lic = Get-CimInstance SoftwareLicensingProduct |
+           Where-Object { $_.PartialProductKey -ne $null } |
+           Select-Object -First 1
+    if ($lic.LicenseStatus -eq 1) {
+      Write-Output "Activacion exitosa"
+    } else {
+      Write-Output "Activacion fallida - verificar conectividad con KMS"
+    }
+  register: activation_result
+  when: activation_status.stdout_lines[0] == "NOT_ACTIVATED"
+
+- name: Mostrar resultado
+  ansible.builtin.debug:
+    msg: "{{ activation_result.stdout_lines[0] | default('Windows ya estaba activado') }}"

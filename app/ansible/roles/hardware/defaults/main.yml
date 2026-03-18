@@ -1,0 +1,5 @@
+---
+reboot_timeout: 600
+reboot_delay: 30
+kms_server: "kms.empresa.local"
+kms_port: 1688

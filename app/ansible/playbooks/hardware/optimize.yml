@@ -1,0 +1,9 @@
+---
+- name: Optimizar Sistema
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Ejecutar optimizacion
+      include_role:
+        name: hardware
+        tasks_from: optimize.yml

@@ -1,0 +1,9 @@
+---
+- name: Informacion del Sistema
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Obtener especificaciones
+      include_role:
+        name: hardware
+        tasks_from: specs.yml

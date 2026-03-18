@@ -1,0 +1,50 @@
+---
+- name: Recolectar datos del sistema
+  ansible.builtin.setup:
+    gather_subset:
+      - hardware
+      - system
+
+- name: Obtener detalles adicionales
+  ansible.windows.win_shell: |
+    $os = Get-CimInstance Win32_OperatingSystem
+    $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
+    $bios = Get-CimInstance Win32_BIOS
+    $cs = Get-CimInstance Win32_ComputerSystem
+    $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'"
+    $net = Get-NetAdapter | Where-Object Status -eq 'Up' | Select-Object Name, MacAddress, LinkSpeed
+
+    $lastBoot = $os.LastBootUpTime.ToString('yyyy-MM-dd HH:mm:ss')
+    $diskFreeGB = [math]::Round($disk.FreeSpace / 1GB, 2)
+    $diskTotalGB = [math]::Round($disk.Size / 1GB, 2)
+    $ramGB = [math]::Round($cs.TotalPhysicalMemory / 1GB, 2)
+
+    $result = @{
+      hostname      = $env:COMPUTERNAME
+      os_name       = $os.Caption
+      os_version    = $os.Version
+      os_build      = $os.BuildNumber
+      serial        = $bios.SerialNumber
+      manufacturer  = $cs.Manufacturer
+      model         = $cs.Model
+      cpu_name      = $cpu.Name.Trim()
+      cpu_cores     = $cpu.NumberOfCores
+      cpu_threads   = $cpu.NumberOfLogicalProcessors
+      ram_gb        = $ramGB
+      disk_free_gb  = $diskFreeGB
+      disk_total_gb = $diskTotalGB
+      last_boot     = $lastBoot
+      network       = @($net | ForEach-Object { "$($_.Name): $($_.MacAddress) ($($_.LinkSpeed))" })
+    }
+
+    $result | ConvertTo-Json -Depth 3
+  register: specs_raw
+  changed_when: false
+
+- name: Procesar datos
+  ansible.builtin.set_fact:
+    system_specs: "{{ specs_raw.stdout | from_json }}"
+
+- name: Mostrar especificaciones
+  ansible.builtin.debug:
+    msg: "{{ system_specs }}"

@@ -1,8 +1,12 @@
+"""Banner ASCII de la aplicacion."""
 from rich.panel import Panel
 
-def get_main_banner():
-    return Panel.fit(
-        "[bold cyan]      ___           ___           ___           ___           ___      \n"
+
+def get_banner() -> Panel:
+    """Retorna el banner principal de SCIPi."""
+    art = (
+        "[bold cyan]"
+        "      ___           ___           ___           ___           ___      \n"
         "     /\\  \\         /\\  \\         /\\  \\         /\\  \\         /\\  \\     \n"
         "    /::\\  \\       /::\\  \\        \\:\\  \\       /::\\  \\        \\:\\  \\    \n"
         "   /:/\\ \\  \\     /:/\\:\\  \\        \\:\\  \\     /:/\\:\\  \\        \\:\\  \\   \n"
@@ -12,8 +16,12 @@ def get_main_banner():
         "  \\:\\ \\:\\__\\    \\:\\  \\         /:/  /           \\::/  /    /:/  /      \n"
         "   \\:\\/:/  /     \\:\\  \\       \\/__/             \\/__/     \\/__/       \n"
         "    \\::/  /       \\:\\__\\                                               \n"
-        "     \\/__/         \\/__/                                               [/bold cyan]\n"
-        "\n[bold white]                  Sistema centralizado de Ansible y Python[/bold white]",
-        title="[bold green]SCIPi v1.0[/bold green]",
-        border_style="cyan"
+        "     \\/__/         \\/__/                                               \n"
+        "[/bold cyan]\n"
+        "[bold white]         Automatizacion IT - Ansible + Python + Docker[/bold white]"
+    )
+    return Panel.fit(
+        art,
+        title="[bold green]SCIPi v2.0[/bold green]",
+        border_style="cyan",
     )

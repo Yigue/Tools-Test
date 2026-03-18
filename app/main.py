@@ -1,46 +1,114 @@
-import typer
-from rich.console import Console
+"""Entry point de SCIPi v2.0."""
+import sys
 
-# Importación de nuevos modulos con Arquitectura Limpia
-from cli.banners import get_main_banner
-from cli.menu import show_main_menu, get_target_device_info
-from core.network import run_preflight_checks
-from core.ansible_manager import run_playbook
+from app.config.settings import console
+from app.config.menu_data import get_menu_categories
+from app.cli.banners import get_banner
+from app.cli.menus import show_categories, show_options, confirm_action
+from app.cli.prompts import ask_hostname, ask_credentials, ask_extra_input
+from app.cli.formatters import show_result, show_raw_output
+from app.core.network import run_preflight
+from app.core.ansible_executor import execute_playbook
+from app.core.models import ExecutionRecord
 
-app = typer.Typer(help="CLI Principal de SCIPi para Automatización y Control")
-console = Console()
 
-@app.command()
-def main():
-    # 1. Dibujar el Banner principal
-    console.print(get_main_banner())
+def main() -> None:
+    """Loop principal de la aplicacion."""
+    console.print(get_banner())
     console.print()
 
-    # 2. Iniciar el ciclo interactivo del usuario
+    hostname, username, password = _ask_connection_info()
+    categories = get_menu_categories()
+    history: list[ExecutionRecord] = []
+
     while True:
-        opcion = show_main_menu()
-        
-        if "0." in opcion:
-            console.print("\n[bold yellow]Saliendo del sistema SCIPi. ¡Hasta pronto![/bold yellow]")
-            raise typer.Exit()
-            
-        elif "1." in opcion:
-            # Flujo de ejecución Ansible refactorizado
-            target, user, pwd, display_host = get_target_device_info()
-            
-            console.print(f"\n[bold yellow]Iniciando ejecución de:[/bold yellow] get_specs.yml \n[bold yellow]Destino:[/bold yellow] {display_host}")
-            
-            # Pre-Flight Check (Plan A)
-            if run_preflight_checks(target):
-                run_playbook("get_specs.yml", target, user, pwd)
-                
-        elif "3." in opcion:
-            target, _, _, _ = get_target_device_info()
-            run_preflight_checks(target)
-            
+        console.print()
+        category = show_categories(categories)
+        if category is None:
+            _exit_app()
+
+        option = show_options(category)
+        if option is None:
+            continue
+
+        if option.action_type == "destructive":
+            if not confirm_action(f"{option.label} - Confirmar ejecucion?"):
+                console.print("[dim]Cancelado.[/dim]")
+                continue
+
+        extra_vars = {}
+        if option.requires_input:
+            value = ask_extra_input(option.input_prompt)
+            extra_vars["target_input"] = value
+
+        console.print(
+            f"\n[bold cyan]Ejecutando:[/bold cyan] {option.label}"
+            f"\n[bold cyan]Destino:[/bold cyan] {hostname}"
+        )
+
+        if not run_preflight(hostname):
+            console.print("[yellow]Abortado: host no alcanzable.[/yellow]")
+            continue
+
+        result = execute_playbook(
+            playbook_name=option.playbook,
+            hostname=hostname,
+            username=username,
+            password=password,
+            extra_vars=extra_vars if extra_vars else None,
+        )
+
+        if result.data:
+            show_result(result, option.label)
         else:
-            console.print(f"\n[bold green]Has seleccionado:[/bold green] [cyan]{opcion}[/cyan]")
-            console.print("[dim]Esta funcionalidad está en desarrollo. Volviendo al menú principal...[/dim]\n")
+            show_raw_output(result)
+
+        _record_history(history, hostname, option.label, result)
+        _pause()
+
+
+def _ask_connection_info() -> tuple[str, str, str]:
+    """Solicita los datos de conexion al inicio."""
+    console.print("[bold]Datos de conexion al equipo destino[/bold]\n")
+    hostname = ask_hostname()
+    username, password = ask_credentials()
+    console.print(f"\n[green]Conectando a:[/green] {hostname}")
+    return hostname, username, password
+
+
+def _record_history(
+    history: list[ExecutionRecord],
+    hostname: str,
+    task_name: str,
+    result,
+) -> None:
+    """Registra una ejecucion en el historial de sesion."""
+    from datetime import datetime
+
+    record = ExecutionRecord(
+        timestamp=datetime.now().strftime("%H:%M:%S"),
+        hostname=hostname,
+        task_name=task_name,
+        success=result.success,
+        duration=result.duration,
+    )
+    history.append(record)
+
+
+def _pause() -> None:
+    """Espera a que el usuario presione Enter."""
+    console.print("\n[dim]Presiona Enter para continuar...[/dim]")
+    try:
+        input()
+    except EOFError:
+        pass
+
+
+def _exit_app() -> None:
+    """Sale de la aplicacion."""
+    console.print("\n[bold yellow]Saliendo de SCIPi. Hasta pronto![/bold yellow]")
+    sys.exit(0)
+
 
 if __name__ == "__main__":
-    app()
+    main()

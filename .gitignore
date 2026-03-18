@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.spec
+
+# Ansible artifacts
+app/ansible/artifacts/
+.cache/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.vault_pass
+*.vault_pass
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Docker
+docker-compose.override.yml

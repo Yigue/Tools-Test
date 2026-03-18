@@ -1,0 +1,9 @@
+---
+- name: Mantenimiento Completo
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Ejecutar mantenimiento
+      include_role:
+        name: admin
+        tasks_from: full_maintenance.yml

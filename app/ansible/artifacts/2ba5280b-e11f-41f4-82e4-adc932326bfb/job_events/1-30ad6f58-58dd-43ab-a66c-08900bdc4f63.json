@@ -1,1 +1,0 @@
-{"event": "verbose", "uuid": "30ad6f58-58dd-43ab-a66c-08900bdc4f63", "counter": 1, "stdout": "\u001b[1;35m[WARNING]: Could not match supplied host pattern, ignoring: host.docker.internal\u001b[0m", "start_line": 0, "end_line": 1, "runner_ident": "2ba5280b-e11f-41f4-82e4-adc932326bfb", "created": "2026-03-14T00:24:39.738812+00:00"}

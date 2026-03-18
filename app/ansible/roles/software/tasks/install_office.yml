@@ -1,0 +1,59 @@
+---
+- name: Verificar si Office esta instalado
+  ansible.windows.win_shell: |
+    $office = Get-ItemProperty 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
+              Where-Object { $_.DisplayName -like '*Microsoft 365*' -or $_.DisplayName -like '*Office 365*' }
+    if ($office) {
+      Write-Output "INSTALLED:$($office.DisplayName | Select-Object -First 1)"
+    } else {
+      Write-Output "NOT_INSTALLED"
+    }
+  register: office_check
+  changed_when: false
+
+- name: Office ya instalado
+  ansible.builtin.debug:
+    msg: "{{ office_check.stdout_lines[0] }}"
+  when: "'INSTALLED' in office_check.stdout"
+
+- name: Verificar acceso al instalador
+  ansible.windows.win_shell: |
+    if (Test-Path "{{ office_installer_path }}") {
+      Write-Output "OK"
+    } else {
+      Write-Output "NOT_FOUND"
+    }
+  register: installer_check
+  when: "'NOT_INSTALLED' in office_check.stdout"
+
+- name: Instalador no encontrado
+  ansible.builtin.fail:
+    msg: "No se encontro el instalador en {{ office_installer_path }}"
+  when:
+    - "'NOT_INSTALLED' in office_check.stdout"
+    - installer_check.stdout_lines[0] == "NOT_FOUND"
+
+- name: Instalar Office 365
+  ansible.windows.win_shell: |
+    Start-Process -FilePath "{{ office_installer_path }}" -ArgumentList "/configure `"{{ office_config_path }}`"" -Wait -NoNewWindow
+    Write-Output "Instalacion completada"
+  register: install_result
+  when:
+    - "'NOT_INSTALLED' in office_check.stdout"
+    - installer_check.stdout_lines[0] == "OK"
+  async: "{{ install_timeout }}"
+  poll: 30
+
+- name: Verificar instalacion
+  ansible.windows.win_shell: |
+    $office = Get-ItemProperty 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
+              Where-Object { $_.DisplayName -like '*Microsoft 365*' -or $_.DisplayName -like '*Office 365*' }
+    if ($office) { Write-Output "OK: $($office.DisplayName | Select-Object -First 1)" }
+    else { Write-Output "FAILED: Office no detectado post-instalacion" }
+  register: verify_result
+  when: install_result is defined
+
+- name: Resultado
+  ansible.builtin.debug:
+    msg: "{{ verify_result.stdout_lines[0] | default(install_result.stdout_lines[0] | default('Proceso completado')) }}"
+  when: "'NOT_INSTALLED' in office_check.stdout"

@@ -1,0 +1,45 @@
+---
+- name: Verificar conectividad con DC
+  ansible.windows.win_shell: |
+    $dc = "{{ domain_controller }}"
+    $result = Test-Connection -ComputerName $dc -Count 1 -Quiet
+    if ($result) { Write-Output "OK" } else { Write-Output "UNREACHABLE" }
+  register: dc_check
+  changed_when: false
+
+- name: Validar DC alcanzable
+  ansible.builtin.fail:
+    msg: "No se puede alcanzar el controlador de dominio {{ domain_controller }}"
+  when: dc_check.stdout_lines[0] != "OK"
+
+- name: Desbloquear cuenta de usuario
+  ansible.windows.win_shell: |
+    $user = "{{ target_input }}"
+    $dc = "{{ domain_controller }}"
+
+    $adUser = Get-ADUser -Identity $user -Server $dc -Properties LockedOut, Enabled, LastLogonDate -ErrorAction Stop
+
+    if (-not $adUser.LockedOut) {
+      $status = @{
+        usuario  = $user
+        estado   = "No estaba bloqueado"
+        enabled  = $adUser.Enabled
+        last_logon = if ($adUser.LastLogonDate) { $adUser.LastLogonDate.ToString('yyyy-MM-dd HH:mm') } else { "Nunca" }
+      }
+    } else {
+      Unlock-ADAccount -Identity $user -Server $dc -ErrorAction Stop
+      $adUser = Get-ADUser -Identity $user -Server $dc -Properties LockedOut, Enabled, LastLogonDate
+      $status = @{
+        usuario  = $user
+        estado   = "Desbloqueado exitosamente"
+        enabled  = $adUser.Enabled
+        last_logon = if ($adUser.LastLogonDate) { $adUser.LastLogonDate.ToString('yyyy-MM-dd HH:mm') } else { "Nunca" }
+      }
+    }
+
+    $status | ConvertTo-Json
+  register: unlock_result
+
+- name: Mostrar resultado
+  ansible.builtin.debug:
+    msg: "{{ unlock_result.stdout | from_json }}"

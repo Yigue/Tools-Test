@@ -1,0 +1,81 @@
+---
+- name: Actualizar politicas de grupo
+  ansible.windows.win_shell: gpupdate /force
+  register: gpupdate_result
+  changed_when: true
+
+- name: Limpiar cache DNS
+  ansible.windows.win_shell: |
+    ipconfig /flushdns
+    Write-Output "Cache DNS limpiado"
+  register: dns_flush
+  changed_when: true
+
+- name: Limpiar archivos temporales
+  ansible.windows.win_shell: |
+    $paths = @("$env:TEMP", "$env:SystemRoot\Temp")
+    $total = 0
+    foreach ($p in $paths) {
+      if (Test-Path $p) {
+        $size = (Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
+                 Measure-Object Length -Sum).Sum
+        Remove-Item "$p\*" -Recurse -Force -ErrorAction SilentlyContinue
+        $total += $size
+      }
+    }
+    Write-Output "Temporales limpiados: $([math]::Round($total / 1MB, 2)) MB"
+  register: temp_clean
+  changed_when: true
+
+- name: Limpiar cache de Windows Update
+  ansible.windows.win_shell: |
+    Stop-Service wuauserv -Force -ErrorAction SilentlyContinue
+    Remove-Item "$env:SystemRoot\SoftwareDistribution\Download\*" -Recurse -Force -ErrorAction SilentlyContinue
+    Start-Service wuauserv -ErrorAction SilentlyContinue
+    Write-Output "Cache de Windows Update limpiado"
+  register: wu_clean
+  changed_when: true
+
+- name: Disparar ciclos SCCM
+  ansible.windows.win_shell: |
+    $cycles = @(
+      '{00000000-0000-0000-0000-000000000021}',
+      '{00000000-0000-0000-0000-000000000113}',
+      '{00000000-0000-0000-0000-000000000108}'
+    )
+    foreach ($id in $cycles) {
+      Invoke-CimMethod -Namespace root\ccm -ClassName SMS_Client -MethodName TriggerSchedule -Arguments @{sScheduleID=$id} -ErrorAction SilentlyContinue
+    }
+    Write-Output "Ciclos SCCM disparados"
+  register: sccm_cycles
+  changed_when: false
+
+- name: Verificar servicios criticos
+  ansible.windows.win_shell: |
+    $services = @('wuauserv', 'BITS', 'CcmExec', 'Spooler', 'W32Time')
+    $results = @()
+    foreach ($svc in $services) {
+      $s = Get-Service -Name $svc -ErrorAction SilentlyContinue
+      if ($s) {
+        $results += "$($s.Name): $($s.Status)"
+      }
+    }
+    $results -join "`n"
+  register: service_check
+  changed_when: false
+
+- name: Sincronizar hora
+  ansible.windows.win_shell: w32tm /resync /force
+  register: time_sync
+  changed_when: false
+
+- name: Resumen de mantenimiento
+  ansible.builtin.debug:
+    msg:
+      - "GPUpdate: completado"
+      - "{{ dns_flush.stdout_lines | first }}"
+      - "{{ temp_clean.stdout_lines | first }}"
+      - "{{ wu_clean.stdout_lines | first }}"
+      - "{{ sccm_cycles.stdout_lines | first }}"
+      - "Servicios: {{ service_check.stdout_lines | length }} verificados"
+      - "Hora sincronizada"

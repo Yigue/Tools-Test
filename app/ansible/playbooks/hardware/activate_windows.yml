@@ -1,0 +1,9 @@
+---
+- name: Activar Windows
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Ejecutar activacion
+      include_role:
+        name: hardware
+        tasks_from: activate_windows.yml

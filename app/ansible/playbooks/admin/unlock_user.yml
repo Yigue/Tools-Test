@@ -1,0 +1,9 @@
+---
+- name: Desbloquear Usuario en AD
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Ejecutar desbloqueo
+      include_role:
+        name: admin
+        tasks_from: unlock_user.yml

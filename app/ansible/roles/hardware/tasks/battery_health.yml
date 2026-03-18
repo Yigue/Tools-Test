@@ -1,0 +1,53 @@
+---
+- name: Verificar si es notebook
+  ansible.windows.win_shell: |
+    $battery = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
+    if ($battery) { Write-Output "true" } else { Write-Output "false" }
+  register: has_battery
+  changed_when: false
+
+- name: Generar reporte de bateria
+  ansible.windows.win_shell: |
+    $reportPath = "$env:TEMP\battery-report.xml"
+    powercfg /batteryreport /xml /output $reportPath 2>$null
+
+    if (-not (Test-Path $reportPath)) {
+      Write-Output '{"error": "No se pudo generar reporte"}'
+      exit 0
+    }
+
+    [xml]$report = Get-Content $reportPath
+    $bat = $report.BatteryReport.Batteries.Battery
+
+    $designCap = [int]$bat.DesignCapacity
+    $fullCap = [int]$bat.FullChargeCapacity
+    $healthPct = if ($designCap -gt 0) { [math]::Round(($fullCap / $designCap) * 100, 1) } else { 0 }
+    $cycleCount = [int]$bat.CycleCount
+
+    $status = if ($healthPct -gt 80) { "Excelente" }
+              elseif ($healthPct -gt 40) { "Degradada" }
+              else { "Critica" }
+
+    $result = @{
+      design_capacity_mwh  = $designCap
+      full_charge_mwh      = $fullCap
+      health_percent       = $healthPct
+      cycle_count          = $cycleCount
+      status               = $status
+    }
+
+    Remove-Item $reportPath -Force -ErrorAction SilentlyContinue
+    $result | ConvertTo-Json
+  register: battery_raw
+  when: has_battery.stdout_lines[0] == "true"
+  changed_when: false
+
+- name: Mostrar resultado
+  ansible.builtin.debug:
+    msg: "{{ battery_raw.stdout | from_json }}"
+  when: has_battery.stdout_lines[0] == "true"
+
+- name: Equipo sin bateria
+  ansible.builtin.debug:
+    msg: "Este equipo no tiene bateria (desktop)."
+  when: has_battery.stdout_lines[0] == "false"

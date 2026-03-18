@@ -1,0 +1,9 @@
+---
+- name: Gestionar Aplicaciones
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Listar aplicaciones
+      include_role:
+        name: software
+        tasks_from: manage_apps.yml

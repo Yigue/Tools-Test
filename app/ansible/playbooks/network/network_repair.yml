@@ -1,0 +1,9 @@
+---
+- name: Reparar Red
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Ejecutar reparacion
+      include_role:
+        name: network
+        tasks_from: network_repair.yml
