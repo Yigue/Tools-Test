@@ -1,0 +1,9 @@
+---
+- name: Analizador Wi-Fi
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Analizar wifi
+      include_role:
+        name: network
+        tasks_from: wifi_analyzer.yml

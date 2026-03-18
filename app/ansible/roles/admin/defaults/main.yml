@@ -1,0 +1,4 @@
+---
+domain_controller: "dc01.dominio.local"
+domain_name: "dominio.local"
+ad_timeout: 30

@@ -1,10 +1,9 @@
 <#
 .SYNOPSIS
-    Script de inicio para la aplicación de automatización (CLI Python + Ansible).
+    Script de inicio para SCIPi v2.0 (CLI Python + Ansible en Docker).
 .DESCRIPTION
-    Verifica si existe la imagen en Docker. Solo la compila la primera vez (o si hay caché corrupta).
-    Si necesitas forzar una actualización (por ej. si cambiaste requirements.txt o Dockerfile),
-    ejecuta: .\inicio.ps1 -Rebuild
+    Verifica Docker, compila la imagen si es necesario, y abre la CLI interactiva.
+    Para forzar recompilacion: .\inicio.ps1 -Rebuild
 #>
 
 param(
@@ -12,80 +11,71 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$serviceName = "scipi"
 
-Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host " Iniciando el Entorno de Automatización " -ForegroundColor Cyan
-Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  SCIPi v2.0 - Automatizacion IT" -ForegroundColor Cyan
+Write-Host "  ================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. Verificar si Docker está instalado y ejecutándose
+# 1. Verificar Docker
 try {
-    $dockerVersion = docker --version 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Docker no respondió."
-    }
-    Write-Host "[+] Docker detectado: $dockerVersion" -ForegroundColor Green
+    $null = docker --version 2>$null
+    if ($LASTEXITCODE -ne 0) { throw }
+    Write-Host "[+] Docker detectado" -ForegroundColor Green
 }
 catch {
-    Write-Host "[-] ERROR: Docker Desktop no está instalado o no está corriendo." -ForegroundColor Red
+    Write-Host "[-] Docker Desktop no esta instalado o no esta corriendo." -ForegroundColor Red
     exit 1
 }
 
-# 2. Comprobar si hay que construir la imagen
-# Desactivamos Stop temporalmente porque si la imagen no existe, Docker tira un error a Stderr que crashea el script
+# 2. Compilar imagen si es necesario
 $oldErrorAction = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
-$imageExists = docker compose images -q server 2>$null
+$imageExists = docker compose images -q $serviceName 2>$null
 $ErrorActionPreference = $oldErrorAction
 
 if (-not $imageExists -or $Rebuild) {
     if ($Rebuild) {
-        Write-Host "[+] Reconstrucción solicitada (-Rebuild). Compilando desde cero..." -ForegroundColor Yellow
+        Write-Host "[+] Recompilando imagen..." -ForegroundColor Yellow
     } else {
-        Write-Host "[+] No se encontró la imagen. Preparando el entorno por primera vez..." -ForegroundColor Yellow
+        Write-Host "[+] Primera ejecucion. Compilando entorno..." -ForegroundColor Yellow
     }
-    
-    # Tratamos de compilar. Si falla el build (común por bugs de caché), limpiamos y reintentamos.
+
     try {
-        & docker compose build
-        if ($LASTEXITCODE -ne 0) { throw "Construcción fallida" }
+        & docker compose build $serviceName
+        if ($LASTEXITCODE -ne 0) { throw "Build fallido" }
     } catch {
-        Write-Host "[-] ADVERTENCIA: Fallo al compilar (Caché corrupta de Docker). Purificando caché interna..." -ForegroundColor Yellow
-        & docker builder prune -f
-        Write-Host "[+] Reintentando compilación tras la limpieza..." -ForegroundColor Cyan
-        & docker compose build
+        Write-Host "[-] Limpiando cache y reintentando..." -ForegroundColor Yellow
+        & docker builder prune -f 2>$null
+        & docker compose build $serviceName
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "[-] ERROR FATAL: No se pudo construir la imagen tras la limpieza." -ForegroundColor Red
+            Write-Host "[-] No se pudo compilar la imagen." -ForegroundColor Red
             exit 1
         }
     }
-    Write-Host "[+] Entorno preparado correctamente." -ForegroundColor Green
+    Write-Host "[+] Entorno listo." -ForegroundColor Green
     Write-Host ""
 } else {
-    Write-Host "[+] Imagen detectada localmente. Saltando proceso de compilación." -ForegroundColor Green
-    Write-Host "    (Si editaste requirements.txt o Dockerfile, ejecuta: .\inicio.ps1 -Rebuild)" -ForegroundColor DarkGray
-    Write-Host ""
+    Write-Host "[+] Imagen existente. Usar -Rebuild para recompilar." -ForegroundColor DarkGray
 }
 
-# 3. Administrar el contenedor y conectarse
-# Comprobamos si el contenedor "server" ya está en ejecución
-$containerId = docker compose ps -q server 2>$null
+# 3. Levantar container si no esta corriendo
+$containerId = docker compose ps -q $serviceName 2>$null
 
 if (-not $containerId) {
-    Write-Host "[+] Iniciando el contenedor SCIPi en segundo plano..." -ForegroundColor Yellow
-    # Usamos "up -d" para levantarlo y que quede vivo en el fondo.
-    # El archivo compose.yaml ya tiene stdin_open y tty que evitan que se muera.
-    & docker compose up -d server
+    Write-Host "[+] Iniciando container..." -ForegroundColor Yellow
+    & docker compose up -d $serviceName
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "[-] ERROR: No se pudo iniciar el contenedor." -ForegroundColor Red
+        Write-Host "[-] No se pudo iniciar el container." -ForegroundColor Red
         exit 1
     }
 } else {
-    Write-Host "[+] El contenedor SCIPi ya estaba en ejecución." -ForegroundColor Green
+    Write-Host "[+] Container activo." -ForegroundColor Green
 }
 
-Write-Host "[+] Abriendo interfaz de la aplicación..." -ForegroundColor Cyan
-Write-Host "    (Puedes presionar Ctrl+C en cualquier momento. El contenedor seguirá corriendo para que vuelvas a entrar rápido)." -ForegroundColor DarkGray
+# 4. Abrir CLI
+Write-Host "[+] Abriendo SCIPi..." -ForegroundColor Cyan
+Write-Host "    (Ctrl+C para salir. El container sigue corriendo.)" -ForegroundColor DarkGray
 Write-Host ""
-# Entramos al contenedor vivo ejecutando el script principal de Python
-& docker compose exec server python app/main.py
+& docker compose exec $serviceName python -m app.main

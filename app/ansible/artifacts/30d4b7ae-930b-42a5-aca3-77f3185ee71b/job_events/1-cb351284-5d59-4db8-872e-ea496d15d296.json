@@ -1,1 +1,0 @@
-{"event": "verbose", "uuid": "cb351284-5d59-4db8-872e-ea496d15d296", "counter": 1, "stdout": "\u001b[1;35m[WARNING]: Could not match supplied host pattern, ignoring: Nb102237\u001b[0m", "start_line": 0, "end_line": 1, "runner_ident": "30d4b7ae-930b-42a5-aca3-77f3185ee71b", "created": "2026-03-13T23:48:35.203920+00:00"}

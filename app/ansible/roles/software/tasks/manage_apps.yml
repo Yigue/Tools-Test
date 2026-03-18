@@ -1,0 +1,30 @@
+---
+- name: Listar aplicaciones instaladas
+  ansible.windows.win_shell: |
+    $apps = @()
+
+    $regPaths = @(
+      'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+      'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    )
+
+    foreach ($path in $regPaths) {
+      Get-ItemProperty $path -ErrorAction SilentlyContinue |
+        Where-Object { $_.DisplayName -and $_.DisplayName.Trim() -ne '' } |
+        ForEach-Object {
+          $apps += @{
+            name      = $_.DisplayName
+            version   = $_.DisplayVersion
+            publisher = $_.Publisher
+          }
+        }
+    }
+
+    $apps = $apps | Sort-Object { $_.name } -Unique
+    @{ total = $apps.Count; applications = $apps } | ConvertTo-Json -Depth 3
+  register: apps_result
+  changed_when: false
+
+- name: Mostrar aplicaciones
+  ansible.builtin.debug:
+    msg: "{{ apps_result.stdout | from_json }}"

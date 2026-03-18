@@ -1,1 +1,0 @@
-{"event": "verbose", "uuid": "a72830f3-6c1f-41ae-99c8-e216ada06383", "counter": 26, "stdout": "    value = _ensure_type(value, value_type, origin)", "start_line": 25, "end_line": 26, "runner_ident": "32051f3f-a586-4d97-b9ae-41ef69744a2e", "created": "2026-03-13T23:10:31.672606+00:00"}

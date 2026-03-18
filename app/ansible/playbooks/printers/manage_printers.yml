@@ -1,0 +1,9 @@
+---
+- name: Gestionar Impresoras
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Administrar impresoras
+      include_role:
+        name: printers
+        tasks_from: manage_printers.yml

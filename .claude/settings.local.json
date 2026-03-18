@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/tools/.claude/worktrees/agitated-joliot -not -path */.git/* -not -path */artifacts/* -type f)",
+      "Bash(grep -E \"\\\\.\\(py|yaml|yml|ps1|dockerfile|sh|json|txt|md\\)$\")",
+      "Bash(git add:*)"
+    ]
+  }
+}

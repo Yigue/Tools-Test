@@ -1,1 +1,0 @@
-{"event": "verbose", "uuid": "5f3f9135-acdf-4726-8e70-9433e0c17336", "counter": 32, "stdout": "ansible.errors.AnsibleError: Unable to create local directories '/nonexistent/.ansible/tmp': [Errno 13] Permission denied: b'/nonexistent'", "start_line": 31, "end_line": 32, "runner_ident": "32051f3f-a586-4d97-b9ae-41ef69744a2e", "created": "2026-03-13T23:10:31.877847+00:00"}

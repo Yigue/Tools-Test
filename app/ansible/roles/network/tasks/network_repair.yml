@@ -1,0 +1,55 @@
+---
+- name: Limpiar cache DNS
+  ansible.windows.win_shell: ipconfig /flushdns
+  register: dns_result
+  changed_when: true
+
+- name: Reset Winsock
+  ansible.windows.win_shell: netsh winsock reset
+  register: winsock_result
+  changed_when: true
+
+- name: Reset stack IP
+  ansible.windows.win_shell: netsh int ip reset
+  register: ip_reset
+  changed_when: true
+
+- name: Reiniciar adaptador Wi-Fi
+  ansible.windows.win_shell: |
+    $wifi = Get-NetAdapter | Where-Object { $_.InterfaceDescription -like '*Wi-Fi*' -or $_.InterfaceDescription -like '*Wireless*' }
+    $winrm = Get-NetAdapter | Where-Object { $_.InterfaceDescription -like '*Ethernet*' -and $_.Status -eq 'Up' }
+
+    if ($wifi -and $winrm) {
+      $wifi | Disable-NetAdapter -Confirm:$false
+      Start-Sleep -Seconds 3
+      $wifi | Enable-NetAdapter -Confirm:$false
+      Write-Output "Adaptador Wi-Fi reiniciado"
+    } elseif ($wifi -and -not $winrm) {
+      Write-Output "Omitido: unico adaptador activo (riesgo de perder conexion)"
+    } else {
+      Write-Output "No se detecto adaptador Wi-Fi"
+    }
+  register: wifi_restart
+  changed_when: false
+
+- name: Verificar conectividad post-reparacion
+  ansible.windows.win_shell: |
+    $targets = @("8.8.8.8", "1.1.1.1", "www.google.com")
+    $results = @()
+    foreach ($t in $targets) {
+      $ok = Test-Connection -ComputerName $t -Count 1 -Quiet -ErrorAction SilentlyContinue
+      $results += "$t : $(if ($ok) { 'OK' } else { 'FAIL' })"
+    }
+    $results -join "`n"
+  register: connectivity_check
+  changed_when: false
+
+- name: Resumen de reparacion
+  ansible.builtin.debug:
+    msg:
+      - "DNS flush: completado"
+      - "Winsock reset: completado"
+      - "IP reset: completado"
+      - "{{ wifi_restart.stdout_lines | first }}"
+      - "Conectividad:"
+      - "{{ connectivity_check.stdout_lines }}"

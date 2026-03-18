@@ -1,50 +1,47 @@
+"""Verificaciones de red previas a la ejecucion."""
 import socket
 import subprocess
-import platform
-from rich.console import Console
 
-console = Console()
+from app.config.settings import WINRM_PORT, CONNECTION_TIMEOUT, console
 
-def check_ping(host: str) -> bool:
-    """Envía paquetes ICMP (ping) para validar que el host responde en la red."""
-    # En Linux ping -c 1 espera una respuesta, en Windows sería -n 1
-    param = '-n' if platform.system().lower() == 'windows' else '-c'
-    command = ['ping', param, '1', '-W', '1', host]
-    
-    # Ejecutamos silenciosamente, solo nos importa el exit code
-    return subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
 
-def check_tcp_port(host: str, port: int, timeout: int = 2) -> bool:
-    """Intenta abrir un socket TCP al host y puerto especificado."""
+def check_ping(host: str, timeout: int = 3) -> bool:
+    """Verifica conectividad ICMP con el host."""
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(timeout)
-            s.connect((host, port))
-            return True
-    except (socket.timeout, ConnectionRefusedError, socket.gaierror):
+        result = subprocess.run(
+            ["ping", "-c", "1", "-W", str(timeout), host],
+            capture_output=True, text=True, timeout=timeout + 2,
+        )
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError):
         return False
 
-def run_preflight_checks(target_host: str) -> bool:
-    """Ejecuta los chequeos de red necesarios antes de lanzar Ansible."""
-    if target_host.lower() == "localhost":
-        return True # Asumimos que el contenedor local siempre está vivo
-    
-    console.print(f"\n[cyan][Pre-Flight Check][/cyan] Escaneando host destino: {target_host}...")
-    
-    # Check 1: ICMP Ping (Descartado temporalmente si se quiere solo guiarse por el de 5985)
-    # Se añade como recomendación para seguir tu Plan A:
-    console.print("  [dim]1/2 Realizando Ping ICMP...[/dim]")
-    if check_ping(target_host):
-         console.print("  [green]✓ Ping responde.[/green]")
-    else:
-         console.print("  [yellow]⚠ Ping no responde (puede estar bloqueado por Firewall, continuando...).[/yellow]")
-    
-    # Check 2: WinRM Port
-    console.print("  [dim]2/2 Validando puerto TCP 5985 (WinRM)...[/dim]")
-    if check_tcp_port(target_host, 5985):
-        console.print("[green]✓[/green] Todo en orden. Host accesible y listo para WinRM.")
-        return True
-    else:
-        console.print(f"[red]✗[/red] Fallo al alcanzar {target_host} por WinRM (TCP 5985).")
-        console.print("[dim]Posibles Causas: Equipo apagado, Firewall bloqueando puerto, o servicio WinRM inactivo.[/dim]")
+
+def check_port(host: str, port: int = WINRM_PORT, timeout: int = CONNECTION_TIMEOUT) -> bool:
+    """Verifica si un puerto TCP esta abierto."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except (socket.timeout, ConnectionRefusedError, OSError):
         return False
+
+
+def run_preflight(host: str) -> bool:
+    """Ejecuta verificaciones de red. Retorna True si WinRM es alcanzable."""
+    console.print(f"\n[bold cyan]Verificando conectividad con {host}...[/bold cyan]")
+
+    ping_ok = check_ping(host)
+    if ping_ok:
+        console.print("  [green]>[/green] Ping exitoso")
+    else:
+        console.print("  [yellow]![/yellow] Ping bloqueado (puede ser firewall)")
+
+    port_ok = check_port(host)
+    if port_ok:
+        console.print(f"  [green]>[/green] Puerto WinRM ({WINRM_PORT}) abierto")
+    else:
+        console.print(f"  [red]x[/red] Puerto WinRM ({WINRM_PORT}) cerrado")
+        console.print("  [dim]Verifica que WinRM este habilitado en el equipo destino[/dim]")
+        return False
+
+    return True

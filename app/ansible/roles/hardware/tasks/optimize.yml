@@ -1,0 +1,55 @@
+---
+- name: Limpiar archivos temporales
+  ansible.windows.win_shell: |
+    $paths = @(
+      "$env:TEMP",
+      "$env:SystemRoot\Temp",
+      "$env:SystemRoot\Prefetch"
+    )
+    $totalFreed = 0
+    foreach ($path in $paths) {
+      if (Test-Path $path) {
+        $size = (Get-ChildItem $path -Recurse -Force -ErrorAction SilentlyContinue |
+                 Measure-Object Length -Sum).Sum
+        Remove-Item "$path\*" -Recurse -Force -ErrorAction SilentlyContinue
+        $totalFreed += $size
+      }
+    }
+    $freedMB = [math]::Round($totalFreed / 1MB, 2)
+    Write-Output "Archivos temporales limpiados: $freedMB MB liberados"
+  register: temp_cleanup
+  changed_when: true
+
+- name: Limpiar cache de Windows Update
+  ansible.windows.win_shell: |
+    Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+    $wuPath = "$env:SystemRoot\SoftwareDistribution\Download"
+    if (Test-Path $wuPath) {
+      $size = (Get-ChildItem $wuPath -Recurse -Force -ErrorAction SilentlyContinue |
+               Measure-Object Length -Sum).Sum
+      Remove-Item "$wuPath\*" -Recurse -Force -ErrorAction SilentlyContinue
+      $freedMB = [math]::Round($size / 1MB, 2)
+      Write-Output "Cache WU limpiado: $freedMB MB liberados"
+    }
+    Start-Service -Name wuauserv -ErrorAction SilentlyContinue
+  register: wu_cleanup
+  changed_when: true
+
+- name: Ejecutar TRIM en SSD
+  ansible.windows.win_shell: |
+    $disk = Get-PhysicalDisk | Where-Object MediaType -eq 'SSD'
+    if ($disk) {
+      Optimize-Volume -DriveLetter C -ReTrim -ErrorAction SilentlyContinue
+      Write-Output "TRIM ejecutado en unidad SSD"
+    } else {
+      Write-Output "No se detecto SSD, omitiendo TRIM"
+    }
+  register: trim_result
+  changed_when: false
+
+- name: Resumen de optimizacion
+  ansible.builtin.debug:
+    msg:
+      - "{{ temp_cleanup.stdout_lines | default(['Sin datos']) | first }}"
+      - "{{ wu_cleanup.stdout_lines | default(['Sin datos']) | first }}"
+      - "{{ trim_result.stdout_lines | default(['Sin datos']) | first }}"

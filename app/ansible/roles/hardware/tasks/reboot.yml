@@ -1,0 +1,10 @@
+---
+- name: Reiniciar equipo
+  ansible.windows.win_reboot:
+    reboot_timeout: "{{ reboot_timeout }}"
+    pre_reboot_delay: "{{ reboot_delay }}"
+    msg: "Reinicio programado por SCIPi"
+
+- name: Confirmar reinicio exitoso
+  ansible.builtin.debug:
+    msg: "Equipo reiniciado y disponible nuevamente."

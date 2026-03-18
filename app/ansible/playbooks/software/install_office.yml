@@ -1,0 +1,9 @@
+---
+- name: Instalar Office 365
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Instalar Office
+      include_role:
+        name: software
+        tasks_from: install_office.yml

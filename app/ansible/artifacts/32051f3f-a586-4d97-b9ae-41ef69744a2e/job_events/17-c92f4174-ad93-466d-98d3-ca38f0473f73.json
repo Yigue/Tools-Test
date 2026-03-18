@@ -1,1 +1,0 @@
-{"event": "verbose", "uuid": "c92f4174-ad93-466d-98d3-ca38f0473f73", "counter": 17, "stdout": "    set_constant(setting, config.get_config_value(setting, variables=vars()))", "start_line": 16, "end_line": 17, "runner_ident": "32051f3f-a586-4d97-b9ae-41ef69744a2e", "created": "2026-03-13T23:10:31.390292+00:00"}

@@ -1,19 +1,12 @@
-# --- Interfaz de Línea de Comandos (CLI) ---
-# Typer con todas sus dependencias estándar (incluye Rich por defecto para colores)
+# CLI interactiva
 typer[all]>=0.9.0
-# InquirerPy para los menús interactivos con flechas del teclado
 InquirerPy>=0.3.4
-# Rich explícito por si querés armar tablas de resultados personalizadas
 rich>=13.0.0
 
-# --- Motor de Automatización ---
-# Paquete general de Ansible
-ansible-core>=2.14.0
-# Permite ejecutar playbooks de Ansible directamente desde código Python
-ansible-runner>=2.3.4
+# Motor de automatizacion
+ansible-core>=2.15.0
 
-# --- Capa de Transporte Remoto (Evasión de AV) ---
-# Conector nativo de WinRM para interactuar con Windows sin tocar el disco
+# Transporte remoto Windows (WinRM)
 pywinrm>=0.4.3
-# Fundamental para entornos corporativos: permite autenticación NTLM/CredSSP
+requests-ntlm>=1.1.0
 requests-credssp>=2.0.0

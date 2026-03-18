@@ -1,0 +1,9 @@
+---
+- name: Info de Equipo en AD
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Consultar AD
+      include_role:
+        name: admin
+        tasks_from: ad_info.yml

@@ -1,0 +1,65 @@
+---
+- name: Obtener info de red Wi-Fi conectada
+  ansible.windows.win_shell: |
+    $profile = netsh wlan show interfaces
+    $networks = netsh wlan show networks mode=bssid
+
+    $connected = @{}
+    foreach ($line in $profile -split "`n") {
+      if ($line -match '^\s+SSID\s+:\s+(.+)') { $connected['ssid'] = $Matches[1].Trim() }
+      if ($line -match 'BSSID\s+:\s+(.+)') { $connected['bssid'] = $Matches[1].Trim() }
+      if ($line -match 'Signal\s+:\s+(.+)') { $connected['signal'] = $Matches[1].Trim() }
+      if ($line -match 'Channel\s+:\s+(.+)') { $connected['channel'] = $Matches[1].Trim() }
+      if ($line -match 'Radio type\s+:\s+(.+)') { $connected['radio'] = $Matches[1].Trim() }
+      if ($line -match 'Authentication\s+:\s+(.+)') { $connected['auth'] = $Matches[1].Trim() }
+    }
+
+    $connected | ConvertTo-Json
+  register: wifi_info
+  changed_when: false
+
+- name: Obtener configuracion de red
+  ansible.windows.win_shell: |
+    $adapter = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and ($_.InterfaceDescription -like '*Wi-Fi*' -or $_.InterfaceDescription -like '*Wireless*') }
+    if ($adapter) {
+      $ip = Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue
+      $gw = Get-NetRoute -InterfaceIndex $adapter.ifIndex -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue
+      $dns = Get-DnsClientServerAddress -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue
+
+      @{
+        adapter   = $adapter.Name
+        mac       = $adapter.MacAddress
+        speed     = $adapter.LinkSpeed
+        ip        = $ip.IPAddress
+        gateway   = $gw.NextHop
+        dns       = $dns.ServerAddresses -join ', '
+      } | ConvertTo-Json
+    } else {
+      @{ error = "No se detecto adaptador Wi-Fi activo" } | ConvertTo-Json
+    }
+  register: net_config
+  changed_when: false
+
+- name: Probar conectividad
+  ansible.windows.win_shell: |
+    $targets = @("8.8.8.8", "www.google.com", "{{ domain_controller | default('localhost') }}")
+    $results = @()
+    foreach ($t in $targets) {
+      $ping = Test-Connection -ComputerName $t -Count 2 -ErrorAction SilentlyContinue
+      if ($ping) {
+        $avg = ($ping | Measure-Object -Property ResponseTime -Average).Average
+        $results += "$t : ${avg}ms"
+      } else {
+        $results += "$t : timeout"
+      }
+    }
+    $results -join "`n"
+  register: conn_test
+  changed_when: false
+
+- name: Mostrar analisis Wi-Fi
+  ansible.builtin.debug:
+    msg:
+      wifi_conectado: "{{ wifi_info.stdout | from_json }}"
+      configuracion: "{{ net_config.stdout | from_json }}"
+      conectividad: "{{ conn_test.stdout_lines }}"

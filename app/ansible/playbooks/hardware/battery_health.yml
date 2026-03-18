@@ -1,0 +1,9 @@
+---
+- name: Salud de Bateria
+  hosts: target
+  gather_facts: no
+  tasks:
+    - name: Analizar bateria
+      include_role:
+        name: hardware
+        tasks_from: battery_health.yml
