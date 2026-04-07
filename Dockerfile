@@ -24,6 +24,12 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     python -m pip install -r requirements.txt
 
+RUN ansible-galaxy collection install \
+    ansible.windows \
+    ansible.posix \
+    -p /usr/share/ansible/collections && \
+    chmod -R a+rX /usr/share/ansible/collections
+
 COPY . .
 
 RUN chown -R appuser:appuser /app

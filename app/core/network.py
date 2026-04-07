@@ -42,6 +42,7 @@ def run_preflight(host: str) -> bool:
     else:
         console.print(f"  [red]x[/red] Puerto WinRM ({WINRM_PORT}) cerrado")
         console.print("  [dim]Verifica que WinRM este habilitado en el equipo destino[/dim]")
+        console.print("  [dim]Si atacas al propio Host desde Docker, verifica las reglas del Firewall de Windows para la subred de Docker.[/dim]")
         return False
 
     return True

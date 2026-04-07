@@ -18,6 +18,7 @@ def build_dynamic_inventory(
         "ansible_winrm_scheme=http\n"
         f"ansible_port={port}\n"
         "ansible_winrm_server_cert_validation=ignore\n"
+        "ansible_winrm_message_encryption=never\n"
         f"ansible_user={username}\n"
         f"ansible_password={password}\n"
         "ansible_shell_type=powershell\n"
