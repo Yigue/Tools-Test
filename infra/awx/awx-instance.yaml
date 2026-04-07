@@ -1,0 +1,50 @@
+apiVersion: awx.ansible.com/v1beta1
+kind: AWX
+metadata:
+  name: awx-pro
+  namespace: awx
+spec:
+  # --- ACCESO Y RED ---
+  service_type: nodeport
+  # hostname: awx.tuempresa.local # Descomentar cuando tengas Ingress/DNS
+
+  # --- RECURSOS (Ajustados para rendimiento real) ---
+  web_resource_requirements:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  
+  task_resource_requirements:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
+
+  # --- SEGURIDAD (Hardening) ---
+  security_context_settings:
+    runAsNonRoot: true
+    runAsUser: 1001
+    seccompProfile:
+      type: RuntimeDefault
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ "ALL" ]
+
+  # --- PERSISTENCIA DE DATOS ---
+  postgres_storage_class: standard # Asegura que persista en Minikube
+  postgres_resource_requirements:
+    requests:
+      cpu: "200m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+  # --- CONFIGURACIÓN ANSIBLE ---
+  admin_user: admin
+  # admin_password_secret: awx-admin-password # Referencia a un Secret manual (opcional)
