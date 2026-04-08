@@ -6,7 +6,7 @@ __pycache__/
 dist/
 build/
 *.spec
-
+krb5.conf
 # Ansible artifacts
 app/ansible/artifacts/
 .cache/
