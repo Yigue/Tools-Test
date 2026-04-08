@@ -1,0 +1,19 @@
+FROM quay.io/ansible/awx-ee:latest
+
+USER root
+
+# Instalamos Kerberos y compiladores
+RUN dnf install -y krb5-workstation gcc python3-devel && \
+    dnf clean all
+
+# Instalamos el driver de WinRM para Python
+RUN pip3 install --no-cache-dir pywinrm[kerberos]
+
+# Copiamos la configuración de AD (que generaremos ahora)
+COPY krb5.conf /etc/krb5.conf
+
+# Instalamos las colecciones de Ansible para Windows
+COPY requirements.yml /tmp/requirements.yml
+RUN ansible-galaxy collection install -r /tmp/requirements.yml --collections-path /usr/share/ansible/collections
+
+USER 1000

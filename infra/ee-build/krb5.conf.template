@@ -1,0 +1,22 @@
+# infra/ee-build/krb5.conf
+[logging]
+ default = FILE:/var/log/krb5libs.log
+
+[libdefaults]
+ default_realm = TUEMPRESA.LOCAL
+ dns_lookup_realm = false
+ dns_lookup_kdc = true
+ ticket_lifetime = 24h
+ renew_lifetime = 7d
+ forwardable = true
+
+[realms]
+ TUEMPRESA.LOCAL = {
+  # Cambia esto por la IP o FQDN de tu Domain Controller
+  kdc = dc01.tuempresa.local
+  admin_server = dc01.tuempresa.local
+ }
+
+[domain_realm]
+ .tuempresa.local = TUEMPRESA.LOCAL
+ tuempresa.local = TUEMPRESA.LOCAL
