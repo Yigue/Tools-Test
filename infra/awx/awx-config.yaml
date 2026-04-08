@@ -1,0 +1,49 @@
+---
+- name: Configuración Base de AWX Enterprise (Configuration as Code)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  collections:
+    - awx.awx
+  
+  # L3 Insight: Las variables de conexión a AWX se leen del entorno (CONTROLLER_HOST, CONTROLLER_USERNAME, CONTROLLER_PASSWORD)
+  
+  tasks:
+    - name: 1. Registrar el Custom Execution Environment local
+      awx.awx.execution_environment:
+        name: "Entorno Corporativo Windows (Kerberos)"
+        image: "awx-custom-ee:1.0"
+        pull: "never" # Crítico: Evita que intente descargarlo de internet
+        description: "EE con librerías krb5 y colecciones Windows para AD."
+        state: present
+
+    - name: 2. Crear Credencial Machine para Active Directory
+      awx.awx.credential:
+        name: "Credencial AD Automations"
+        credential_type: "Machine"
+        organization: "Default"
+        inputs:
+          username: "{{ lookup('env', 'AD_SVC_USER') }}"
+          password: "{{ lookup('env', 'AD_SVC_PASSWORD') }}"
+        state: present
+
+    - name: 3. Crear Proyecto apuntando a tu Repositorio Git
+      awx.awx.project:
+        name: "Playbooks Core de Infraestructura"
+        organization: "Default"
+        scm_type: "git"
+        scm_url: "https://github.com/tu-usuario/tu-repo-playbooks.git" # <-- MODIFICAR en tu repo
+        scm_branch: "main"
+        scm_clean: true
+        scm_update_on_launch: true
+        state: present
+
+    - name: 4. Crear Inventario Base de Servidores Windows
+      awx.awx.inventory:
+        name: "Windows Servers (Laboratorio)"
+        organization: "Default"
+        variables: |
+          ansible_connection: winrm
+          ansible_winrm_transport: kerberos
+          ansible_winrm_server_cert_validation: ignore
+        state: present
